@@ -3,6 +3,7 @@ package dev;
 import java.awt.Image;
 import java.io.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -27,12 +28,12 @@ public class Serializable {
 	 * */
 	public static void serialize(Object written, String fileName) {
 		try {
-			FileOutputStream fileOut = new FileOutputStream("tmp/" + fileName + ".ser");
+			FileOutputStream fileOut = new FileOutputStream(GUI.DIRNAME + fileName + ".ser");
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);
 			out.writeObject(written);
 			out.close();
 			fileOut.close();
-			System.out.printf("Serialized data is saved in " + fileName);
+			System.out.printf("Serialized data is saved in " + fileName + "\n");
 		} catch(IOException i) {
 			i.printStackTrace();
 		}
@@ -43,14 +44,22 @@ public class Serializable {
 	 * */
 	public static Object deserialize(Object obj, String fileName) {
 		try {
-			FileInputStream fileIn = new FileInputStream("tmp/" + fileName);
+			FileInputStream fileIn = new FileInputStream(GUI.DIRNAME + fileName);
 			ObjectInputStream in = new ObjectInputStream(fileIn);
-			//if(in.readObject().getClass() == obj.getClass()) {
 			obj = in.readObject();
-			//} else obj = null;
 			in.close();
 			fileIn.close();
 			return obj;
+		} catch(FileNotFoundException g) {
+			System.out.println("Inca nu exista un fisier\n");
+			try {
+				FileOutputStream out = new FileOutputStream(GUI.DIRNAME + fileName);
+				//out.write();
+				out.close();
+			} catch(IOException e) {
+				System.out.println("Am intalnit alte erori si nu am putut crea fisierul banca.ser!");
+			}
+			return null;
 		} catch(IOException i) {
 			i.printStackTrace();
 			return null;
@@ -102,8 +111,8 @@ public class Serializable {
         		String filename = unique.getName();
         		Object p = null;
         		p = Serializable.deserialize(p, filename);
-        		if(status) { // E pentru a crea o singura data doar numele campurilor
-	        		Field[] fields = p.getClass().getDeclaredFields();
+        		if(status) { // E pentru a crea o singura data doar numele campurilor]
+	        		Field[] fields = p.getClass().getFields();
 	        		for(Field field: fields) {
 	        			columnNames.add(field.getName());
 	        			status = false;

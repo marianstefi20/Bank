@@ -1,7 +1,9 @@
 package dev;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GraphicsEnvironment;
@@ -13,29 +15,48 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
+import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 
 class GUI extends JFrame {
 	// Variabila globala in care se salveaza directorul
 	public static final String DIRNAME = "tmp/";
-	JPanel mainPanel;
-	JTable table;
+	public JPanel mainPanel;
+	public JScrollPane scrollPane;
+	public JTable table;
+	public JTabbedPane tabs;
+	public JPanel accountContainer;
+	JLabel taxeSiDobanda;
+	public JComboBox<String> listaConturi;
+	public Banca banca;
+	
 	
 	public GUI() {
+		banca = new Banca();
 		this.prepareGUI();
 	}
 	
@@ -51,6 +72,7 @@ class GUI extends JFrame {
 	}
 	
 	public void modelPanel(JPanel panel) {
+		Border empty = BorderFactory.createEmptyBorder(10, 10, 10, 10);
         GridBagLayout layout = new GridBagLayout();
         panel.setLayout(layout);        
         GridBagConstraints gbc = new GridBagConstraints();
@@ -60,6 +82,7 @@ class GUI extends JFrame {
         gbc.gridy = 0;
         gbc.weightx = 0.5;
         JLabel label1 = new JLabel();
+        label1.setBorder(empty);
         label1.setText("<html><p style='font-size:32px;text-align:center;font-family:Old English Text MT;font-weight:400'>Banca lui Marian</p></html>");        
         panel.add(label1, gbc);
         
@@ -147,22 +170,137 @@ class GUI extends JFrame {
         }
         
  		// Adaugarea tabelului la un Scrooling Pane
-        JTabbedPane tabs = new JTabbedPane();
-        JScrollPane scrollPane = new JScrollPane( table );
+        tabs = new JTabbedPane();
+        tabs.setBorder(empty);
+        scrollPane = new JScrollPane( table );
  		table.setPreferredSize(new Dimension(500, table.getRowHeight()*15+1));
  		scrollPane.setPreferredSize(table.getPreferredSize());
- 		Dimension d = table.getPreferredSize();
+ 		 
+ 		ArrayList<String> conturi = new ArrayList<>();	
+		Vector<Vector<Object>> allData = model.getDataVector();
+		for(Vector data: allData) 
+			conturi.add(data.elementAt(2).toString());
+		
+		// Definim zona pentur tab-ul 2 unde se pot adauga noi informarii legate de 
+		// account-uri si legaturile acestora cu conturile
+ 		JPanel conturiContainer = new JPanel(new GridBagLayout());
+ 		conturiContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+ 		JLabel conturiExistente = new JLabel("1. Selecteaza persoana: ");
+ 		gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.ipady = 5;
+        gbc.ipadx = 20;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weighty = 0;
+ 		conturiContainer.add(conturiExistente, gbc);
+ 		conturiContainer.setPreferredSize(new Dimension(500, 20));
+ 		if(conturi.isEmpty()) {
+ 			conturi.add("");
+ 		}
+ 		listaConturi = new JComboBox<String>(conturi.toArray(new String[0]));
+ 		listaConturi.setPreferredSize(new Dimension(500, 20));
+ 		listaConturi.setSelectedIndex(0);
+ 		listaConturi.setActionCommand("alegeCont");
+ 		String value = listaConturi.getSelectedItem().toString();
+ 		Persoana emptyPers = new Persoana(value); 		
+ 		Set<Persoana> persSet = this.banca.map.keySet();
+ 		for(Persoana pers: persSet) {
+ 			if(pers.equals(emptyPers)) {
+ 				//System.out.println("Am gasit o egalitate!!\n");
+ 			} else {
+ 				//System.out.println("Nu s-a gasit nimic \n");
+ 			}
+ 		}
+ 		listaConturi.addActionListener(new Controller(this));
+ 		gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.ipady = 5;
+        gbc.ipadx = 20;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weighty = 0;
+ 		conturiContainer.add(listaConturi, gbc);
+ 		this.accountContainer = new JPanel();
+		gbc.fill = GridBagConstraints.NONE;
+	    gbc.anchor = GridBagConstraints.WEST;
+	    gbc.ipady = 5;
+	    gbc.ipadx = 20;
+	    gbc.gridx = 0;
+	    gbc.gridy = 2;
+	    gbc.weighty = 0;
+ 		conturiContainer.add(this.accountContainer, gbc);
+ 		
+ 		gbc.fill = GridBagConstraints.NONE;
+	    gbc.anchor = GridBagConstraints.WEST;
+	    gbc.ipady = 5;
+	    gbc.ipadx = 20;
+	    gbc.gridx = 0;
+	    gbc.gridy = 3;
+	    gbc.weighty = 0;
+	    JButton adaugaCont = new JButton("Adauga cont");
+	    adaugaCont.setActionCommand("contNou");
+	    adaugaCont.addActionListener(new Controller(this));
+	    conturiContainer.add(adaugaCont, gbc);
+ 		
+ 		// Mini Hack for making the grid bag layout proper display
+ 		gbc.fill = GridBagConstraints.NONE;
+	    gbc.anchor = GridBagConstraints.WEST;
+	    gbc.ipady = 5;
+	    gbc.ipadx = 20;
+	    gbc.gridx = 0;
+	    gbc.gridy = 4;
+	    gbc.weighty = 1;
+	    JLabel emptyLabelHack = new JLabel("");
+	    conturiContainer.add(emptyLabelHack, gbc);
+ 		
+	 	tabs.addTab("Clienti", scrollPane);
+	 	tabs.addTab("Conturi", conturiContainer);
+	 	gbc.fill = GridBagConstraints.HORIZONTAL;
+ 	    gbc.ipady = 0;   
+ 	    gbc.gridx = 0;
+ 	    gbc.gridy = 4;
+ 	    gbc.weighty = 0;
+ 		panel.add( tabs, gbc);
+ 		
  		gbc.fill = GridBagConstraints.HORIZONTAL;
  	    gbc.ipady = 0;   
  	    gbc.gridx = 0;
- 	    gbc.gridy = 2;
- 	    gbc.weightx = 1;
- 	    tabs.addTab("Clienti", scrollPane);
- 		panel.add( tabs, gbc);
+ 	    gbc.gridy = 5;
+ 	    gbc.weighty = 0;
+ 	   
+ 	    JPanel dateGeneraleBanca = new JPanel(new GridLayout(2, 1));
+ 	    dateGeneraleBanca.setBorder(empty);
+ 	    JLabel dateGenerale = new JLabel("<html><em>Date generale banca</em></html>");
+ 	    taxeSiDobanda = new JLabel("TAXA RETRAGERE: " + this.banca.TAXA_RETRAGERE * 100 + "%    DOBANDA: " + this.banca.DOBANDA * 100 +"%");
+ 	    dateGeneraleBanca.add(dateGenerale);
+ 	    dateGeneraleBanca.add(taxeSiDobanda);
+ 	    panel.add(dateGeneraleBanca, gbc);
+ 		
+ 		gbc.fill = GridBagConstraints.HORIZONTAL;
+ 	    gbc.ipady = 0;   
+ 	    gbc.gridx = 0;
+ 	    gbc.gridy = 6;
+ 	    gbc.weighty = 0;
+ 	    JPanel optiuniBanca = new JPanel(new GridLayout(1, 3));
+ 	    JPanel optiuni1 = new JPanel();
+ 	    JLabel optiuniLabel = new JLabel("Setare taxe generale: ");
+ 	    optiuni1.add(optiuniLabel);
+ 	    JButton optiuniSuplimentare = new JButton("General");
+ 	    optiuniSuplimentare.setActionCommand("optiuniGenerale");
+ 	    optiuniSuplimentare.addActionListener(new Controller(this));
+ 	    optiuni1.add(optiuniSuplimentare);
+ 	    optiuniBanca.add(optiuni1);
+ 	    
+ 	    JPanel optiuni2 = new JPanel();
+ 	    optiuniBanca.add(optiuni2);
+ 	    JPanel optiuni3 = new JPanel();
+ 	    optiuniBanca.add(optiuni3);
+ 	    panel.add(optiuniBanca, gbc);
  		
  		GridBagConstraints c = new GridBagConstraints();
  		c.gridx = 0;
- 		c.gridy = 5;
+ 		c.gridy = 7;
  		c.fill = GridBagConstraints.BOTH;
  		c.weightx=1;
  		c.weighty=1;
@@ -202,11 +340,21 @@ class GUI extends JFrame {
  	    
 		// Se va seta noul model si cateva dimensiuni standard pe table + scrollPane
 		table.setModel(resultsModel);
-		int index = this.getIndexOfComp(mainPanel, "JTable");
-		mainPanel.remove(index);
-		mainPanel.add(table, gbc, index);
-		mainPanel.revalidate();
-		mainPanel.repaint();
+		int index = 4;
+		//table.remove(0);
+		//tabs.add(scrollPane);
+		table.revalidate();
+		table.repaint();
+		
+		// Refresh la lista conturi
+		listaConturi.revalidate();
+		listaConturi.repaint();
+		
+		//taxe si dobanda
+		taxeSiDobanda.setText("TAXA RETRAGERE: " + this.banca.TAXA_RETRAGERE * 100 + "%    DOBANDA: " + this.banca.DOBANDA * 100 +"%");
+		
+		tabs.revalidate();
+		tabs.repaint();
  			
 	}
 	
@@ -227,6 +375,18 @@ class GUI extends JFrame {
 		}
 		return j;
 	}
+	
+	public static final int getComponentIndex(Component component) {
+	    if (component != null && component.getParent() != null) {
+	      Container c = component.getParent();
+	      for (int i = 0; i < c.getComponentCount(); i++) {
+	        if (c.getComponent(i) == component)
+	          return i;
+	      }
+	    }
+
+	    return -1;
+	  }
 	public void showPanel(){ 
 		this.setVisible(true);
 	}
