@@ -162,7 +162,11 @@ class Controller implements ActionListener {
 							+ ((tipCont == Cont.contCheltuieli) ? "Cheltuieli" : "Economii") + "<br></html>");
 						line.add(informatiiCont);
 						JButton retrage = new JButton("Retrage");
+						retrage.setActionCommand("retrageBani");
+						retrage.addActionListener(this);
 						JButton depune = new JButton("Depune");
+						depune.setActionCommand("depuneBani");
+						depune.addActionListener(this);
 						line.add(retrage);
 						line.add(depune);
 						griddy.add(line, gbc);
